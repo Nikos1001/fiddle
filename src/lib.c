@@ -116,10 +116,14 @@ FN_SIGNATURE(endFrame) {
         }
         if(ev.type == SDL_KEYDOWN) {
             int key = ev.key.keysym.sym;
+            if(key >= 256)
+                break;
             keyDown[key] = true;
         }
         if(ev.type == SDL_KEYUP) {
             int key = ev.key.keysym.sym;
+            if(key >= 256)
+                break;
             keyDown[key] = false;
         }
     }
