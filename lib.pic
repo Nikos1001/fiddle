@@ -12,7 +12,7 @@ var _width = nil
 var _height = nil
 var _keyDown = nil
 const run := fn name, w, h, pixelW, pixelH, update -> {
-    _dllLib = dll.open('fiddle/dll/liblib.' + dll.extension)
+    _dllLib = dll.open('httpsgithub.comNikos1001fiddle/dll/liblib.' + dll.extension)
     _dllLib.get('begin')(name, w, h, pixelW, pixelH)
     
     _plotPixel = _dllLib.get('plotPixel')
