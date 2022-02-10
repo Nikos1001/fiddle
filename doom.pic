@@ -1,0 +1,74 @@
+
+import 'io' as io
+import 'math' as math
+import 'fiddle/lib.pic' as fiddle
+import 'str' as str
+
+const camera := {
+    'x': 3,
+    'y': 3,
+    'a': 0
+}
+
+const map = [
+    '#.....',
+    '....#.',
+    '....##',
+    '......',
+    '####..',
+    '......'
+]
+const inWall := fn x, y -> {
+    if x < 0 or x > 6 or y < 0 or y > 6
+        true
+    else
+        map[y][x] == '#'
+}
+
+const fov := math.pi / 2
+const step := 0.025
+
+fiddle.run('DOOM', 320, 240, 2, 2, fn dt -> {
+    var steps := 0
+    for x in 0..fiddle.width() {
+        const leftDX := math.cos(camera.a - fov / 2)
+        const leftDY := math.sin(camera.a - fov / 2)
+        const rightDX := math.cos(camera.a + fov / 2)
+        const rightDY := math.sin(camera.a + fov / 2)
+        const dx := math.map(x, 0, fiddle.width() - 1, leftDX, rightDX)
+        const dy := math.map(x, 0, fiddle.width() - 1, leftDY, rightDY)
+        var cx := camera.x
+        var cy := camera.y
+        var d := 0
+        while !inWall(cx, cy) {
+            cx = cx + dx * step
+            cy = cy + dy * step
+            d = d + step
+            steps = steps + 1
+        }
+        const colH := fiddle.height() / 2 / d
+        fiddle.fill(1 / d, 1 / d, 1 / d)
+        fiddle.rect(x, fiddle.height() / 2 - colH / 2, 1, colH)
+    }
+    const lookX := math.cos(camera.a)
+    const lookY := math.sin(camera.a)
+
+    if fiddle.keyDown('w') {
+        camera.x = camera.x + lookX * dt
+        camera.y = camera.y + lookY * dt
+    }
+    if fiddle.keyDown('s') {
+        camera.x = camera.x - lookX * dt
+        camera.y = camera.y - lookY * dt
+    }
+    if fiddle.keyDown('a') {
+        camera.a = camera.a - dt * math.pi / 2
+    }
+    if fiddle.keyDown('d') {
+        camera.a = camera.a + dt * math.pi / 2
+    }
+
+    fiddle.fill(1, 0.5, 0.2)
+    fiddle.text('fps: ' + str.numToStr(1 / dt), 0, 0)
+})
+

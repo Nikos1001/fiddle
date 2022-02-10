@@ -1,0 +1,76 @@
+
+import 'dll' as dll
+import 'time' as time
+import 'str' as str
+
+var _dllLib = nil
+var _plotPixel = nil
+var _fill = nil
+var _rect = nil
+var _text = nil
+var _width = nil
+var _height = nil
+var _keyDown = nil
+const run := fn name, w, h, pixelW, pixelH, update -> {
+    _dllLib = dll.open('fiddle/dll/liblib.' + dll.extension)
+    _dllLib.get('begin')(name, w, h, pixelW, pixelH)
+    
+    _plotPixel = _dllLib.get('plotPixel')
+    _fill = _dllLib.get('fill')
+    _rect = _dllLib.get('rect')
+    _text = _dllLib.get('text')
+    _width = _dllLib.get('width')
+    _height = _dllLib.get('height')
+    _keyDown = _dllLib.get('keyPressed')
+
+    const shouldClose = _dllLib.get('shouldClose')
+    const endFrame = _dllLib.get('endFrame')
+    var dt := 0
+    while !shouldClose() {
+        const startTime := time.clock()
+        update(dt)
+        endFrame()
+        const midTime := time.clock()
+        time.sleep(1 / 60 - (midTime - startTime))
+        const endTime := time.clock()
+        dt = endTime - startTime
+    }
+    nil
+}
+
+const keyDown := fn c -> {
+    if c.length != 1
+        false
+    else
+        _keyDown(str.utfCode(c))
+}
+
+const plot := fn x, y, r, g, b -> {
+    if _dllLib != nil
+        _plotPixel(x, y, r, g, b)
+}
+
+const fill := fn r, g, b -> {
+    if _dllLib != nil
+        _fill(r, g, b)
+}
+
+const rect := fn x, y, w, h -> {
+    if _dllLib != nil
+        _rect(x, y, w, h)
+}
+
+const text := fn s, x, y -> {
+    if _dllLib != nil
+        _text(s, x, y)
+}
+
+const width := fn -> {
+    if _dllLib != nil
+        _width()
+}
+
+const height := fn -> {
+    if _dllLib != nil
+        _height()
+}
