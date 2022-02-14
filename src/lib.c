@@ -3,6 +3,8 @@
 #include "font.h"
 #include <SDL.h>
 #include <stdio.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 SDL_Window* win;
 SDL_Renderer* renderer;
@@ -11,6 +13,7 @@ int w, h, pw, ph;
 float cr, cg, cb;
 bool* modified;
 bool keyDown[256];
+struct tex* target;
 
 struct pixel {
     float r, g, b;
@@ -49,6 +52,7 @@ const char* beginParamName[4] = {
 };
 
 FN_SIGNATURE(begin) {
+    target = NULL;
     if(argc != 5) {
         piccolo_runtimeError(engine, "Expected 5 args.");
         return PICCOLO_NIL_VAL();
@@ -156,7 +160,9 @@ FN_SIGNATURE(keyPressed) {
 }
 
 #define TEX_FN \
-    struct tex* tex = &scr;
+    struct tex* tex = &scr; \
+    if(target != NULL) \
+        tex = target;
 
 void plotPixel_(struct tex* tex, int x, int y, float r, float g, float b) {
     if(x < 0 || x >= tex->w || y < 0 || y >= tex->h)
@@ -177,7 +183,8 @@ void plotPixel_(struct tex* tex, int x, int y, float r, float g, float b) {
     if(b > 1)
         b = 1;
     tex->dat[idx].b = b;
-    modified[idx] = true;
+    if(tex == &scr)
+        modified[idx] = true;
 }
 
 const char* plotPixelParamName[5] = {
@@ -319,4 +326,140 @@ FN_SIGNATURE(height) {
         return PICCOLO_NIL_VAL();
     }
     return PICCOLO_NUM_VAL(tex->h);
+}
+
+FN_SIGNATURE(loadTex) {
+    if(argc != 1) {
+        piccolo_runtimeError(engine, "Expected 1 arg.");
+        return PICCOLO_NIL_VAL();
+    }
+    if(!PICCOLO_IS_STRING(argv[0])) {
+        piccolo_runtimeError(engine, "Filename must be a string.");
+        return PICCOLO_NIL_VAL();
+    }
+    const char* filename = ((struct piccolo_ObjString*)PICCOLO_AS_OBJ(argv[0]))->string;
+    int w, h, n;
+    unsigned char* data = stbi_load(filename, &w, &h, &n, 0);
+    if(!data) {
+        piccolo_runtimeError(engine, "Could not load texture.");
+        return PICCOLO_NIL_VAL();
+    }
+    struct piccolo_ObjNativeStruct* natStruct = PICCOLO_ALLOCATE_NATIVE_STRUCT(engine, struct tex, "texture");
+    struct tex* tex = PICCOLO_GET_PAYLOAD(natStruct, struct tex);
+    initTex(engine, tex, w, h);
+    for(int x = 0; x < w; x++) {
+        for(int y = 0; y < h; y++) {
+            int i = (y * w + x) * n;
+            plotPixel_(tex, x, y, data[i] / 255.0, data[i + 1] / 255.0, data[i + 2] / 255.0);
+        }
+    }
+    free(data);
+    return PICCOLO_OBJ_VAL(natStruct);
+}   
+
+struct pixel* sampleTex(struct tex* tex, int x, int y) {
+    return &tex->dat[y * tex->w + x];
+}
+
+FN_SIGNATURE(sampleR) {
+    TEX_FN
+    if(argc != 2) {
+        piccolo_runtimeError(engine, "Expected 2 args.");
+        return PICCOLO_NIL_VAL();
+    }
+    if(!PICCOLO_IS_NUM(argv[0]) || !PICCOLO_IS_NUM(argv[1])) {
+        piccolo_runtimeError(engine, "X and Y must be numbers.");
+        return PICCOLO_NIL_VAL();
+    }
+    float x = PICCOLO_AS_NUM(argv[0]) * tex->w;
+    while(x > tex->w) {
+        x -= tex->w;
+    }
+    while(x < 0) {
+        x += tex->w;
+    }
+    float y = PICCOLO_AS_NUM(argv[1]) * tex->h;
+    while(y > tex->h) {
+        y -= tex->h;
+    }
+    while(y < 0) {
+        y += tex->h;
+    }
+    int xi = (int)x;
+    int yi = (int)y;
+    return PICCOLO_NUM_VAL(sampleTex(tex, xi, yi)->r);
+}
+
+FN_SIGNATURE(sampleG) {
+    TEX_FN
+    if(argc != 2) {
+        piccolo_runtimeError(engine, "Expected 2 args.");
+        return PICCOLO_NIL_VAL();
+    }
+    if(!PICCOLO_IS_NUM(argv[0]) || !PICCOLO_IS_NUM(argv[1])) {
+        piccolo_runtimeError(engine, "X and Y must be numbers.");
+        return PICCOLO_NIL_VAL();
+    }
+    float x = PICCOLO_AS_NUM(argv[0]) * tex->w;
+    while(x > tex->w) {
+        x -= tex->w;
+    }
+    while(x < 0) {
+        x += tex->w;
+    }
+    float y = PICCOLO_AS_NUM(argv[1]) * tex->h;
+    while(y > tex->h) {
+        y -= tex->h;
+    }
+    while(y < 0) {
+        y += tex->h;
+    }
+    int xi = (int)x;
+    int yi = (int)y;
+    return PICCOLO_NUM_VAL(sampleTex(tex, xi, yi)->g);
+}
+
+FN_SIGNATURE(sampleB) {
+    TEX_FN
+    if(argc != 2) {
+        piccolo_runtimeError(engine, "Expected 2 args.");
+        return PICCOLO_NIL_VAL();
+    }
+    if(!PICCOLO_IS_NUM(argv[0]) || !PICCOLO_IS_NUM(argv[1])) {
+        piccolo_runtimeError(engine, "X and Y must be numbers.");
+        return PICCOLO_NIL_VAL();
+    }
+    float x = PICCOLO_AS_NUM(argv[0]) * tex->w;
+    while(x > tex->w) {
+        x -= tex->w;
+    }
+    while(x < 0) {
+        x += tex->w;
+    }
+    float y = PICCOLO_AS_NUM(argv[1]) * tex->h;
+    while(y > tex->h) {
+        y -= tex->h;
+    }
+    while(y < 0) {
+        y += tex->h;
+    }
+    int xi = (int)x;
+    int yi = (int)y;
+    return PICCOLO_NUM_VAL(sampleTex(tex, xi, yi)->b);
+}
+
+FN_SIGNATURE(setTarget) {
+    if(!PICCOLO_IS_NATIVE_STRUCT(argv[0])) {
+        piccolo_runtimeError(engine, "Target must be a texture.");
+        return PICCOLO_NIL_VAL();
+    }
+    struct piccolo_ObjNativeStruct* natStruct = PICCOLO_AS_OBJ(argv[0]);
+    struct tex* tex = PICCOLO_GET_PAYLOAD(natStruct, struct tex);
+    target = tex;
+    return PICCOLO_NIL_VAL();
+}
+
+FN_SIGNATURE(popTarget) {
+    target = NULL;
+    return PICCOLO_NIL_VAL();
 }

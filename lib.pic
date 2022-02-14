@@ -3,26 +3,25 @@ import 'dll' as dll
 import 'time' as time
 import 'str' as str
 
-var _dllLib = nil
-var _plotPixel = nil
-var _fill = nil
-var _rect = nil
-var _text = nil
-var _width = nil
-var _height = nil
-var _keyDown = nil
-const run := fn name, w, h, pixelW, pixelH, update -> {
-    _dllLib = dll.open('httpsgithub.comNikos1001fiddle/dll/liblib.' + dll.extension)
-    _dllLib.get('begin')(name, w, h, pixelW, pixelH)
-    
-    _plotPixel = _dllLib.get('plotPixel')
-    _fill = _dllLib.get('fill')
-    _rect = _dllLib.get('rect')
-    _text = _dllLib.get('text')
-    _width = _dllLib.get('width')
-    _height = _dllLib.get('height')
-    _keyDown = _dllLib.get('keyPressed')
+# const _dllLib := dll.open('./dll/liblib.dylib')
+const _dllLib := dll.open('httpsgithub.comNikos1001fiddle/dll/liblib.' + dll.extension)
 
+const _plotPixel := _dllLib.get('plotPixel')
+const _fill := _dllLib.get('fill')
+const _rect := _dllLib.get('rect')
+const _text := _dllLib.get('text')
+const _width := _dllLib.get('width')
+const _height := _dllLib.get('height')
+const _sampleR := _dllLib.get('sampleR')
+const _sampleG := _dllLib.get('sampleG')
+const _sampleB := _dllLib.get('sampleB')
+const _keyDown := _dllLib.get('keyPressed')
+const _loadTex := _dllLib.get('loadTex')
+const _pushTarget := _dllLib.get('setTarget')
+const _popTarget := _dllLib.get('popTarget')
+
+const run := fn name, w, h, pixelW, pixelH, update -> {
+    _dllLib.get('begin')(name, w, h, pixelW, pixelH)
     const shouldClose = _dllLib.get('shouldClose')
     const endFrame = _dllLib.get('endFrame')
     var dt := 0
@@ -46,31 +45,88 @@ const keyDown := fn c -> {
 }
 
 const plot := fn x, y, r, g, b -> {
-    if _dllLib != nil
-        _plotPixel(x, y, r, g, b)
+    _plotPixel(x, y, r, g, b)
 }
 
 const fill := fn r, g, b -> {
-    if _dllLib != nil
-        _fill(r, g, b)
+    _fill(r, g, b)
 }
 
 const rect := fn x, y, w, h -> {
-    if _dllLib != nil
-        _rect(x, y, w, h)
+    _rect(x, y, w, h)
 }
 
 const text := fn s, x, y -> {
-    if _dllLib != nil
-        _text(s, x, y)
+    _text(s, x, y)
 }
 
 const width := fn -> {
-    if _dllLib != nil
-        _width()
+    _width()
 }
 
 const height := fn -> {
-    if _dllLib != nil
-        _height()
+    _height()
+}
+
+const sampleR := fn x, y -> {
+    _sampleR(x, y)
+}
+
+const sampleG := fn x, y -> {
+    _sampleG(x, y)
+}
+
+const sampleB := fn x, y -> {
+    _sampleB(x, y)
+}
+
+const loadTex := fn path -> {
+    const tex := _loadTex(path)
+    {
+        'width': fn -> {
+            _pushTarget(tex)
+            const result := _width()
+            _popTarget()
+            result
+        },
+        'height': fn -> {
+            _pushTarget(tex)
+            const result := _height()
+            _popTarget()
+            result
+        },
+        'plotPixel': fn x, y, r, g, b -> {
+            _pushTarget(tex)
+            _plotPixel(x, y, r, g, b)
+            _popTarget()
+        },
+        'rect': fn x, y, w, h -> {
+            _pushTarget(tex)
+            _rect(x, y, w, h)
+            _popTarget()
+        },
+        'text': fn s, x, y -> {
+            _pushTarget(tex)
+            _text(s, x, y)
+            _popTarget()
+        },
+        'sampleR': fn x, y -> {
+            _pushTarget(tex)
+            const result := _sampleR(x, y)
+            _popTarget()
+            result
+        },
+        'sampleG': fn x, y -> {
+            _pushTarget(tex)
+            const result := _sampleG(x, y)
+            _popTarget()
+            result
+        },
+        'sampleB': fn x, y -> {
+            _pushTarget(tex)
+            const result := _sampleB(x, y)
+            _popTarget()
+            result
+        }
+    }
 }
